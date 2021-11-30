@@ -117,3 +117,7 @@ This API contain 4 end points.
  1. Enter wrong pin and try for three times.
  2. Enter in-correct Account number and try.
  3. Enter more ammount than the depoisted and try.
+
+
+
+![resources/Tavant_Logo-66629037-0590-4872-abfc-430131de05e7.jpg](resources/Tavant_Logo-66629037-0590-4872-abfc-430131de05e7.jpg)
