@@ -24,7 +24,7 @@ This API contain 4 end points.
 - **POST /checkBalance?bank=ICIC=savings**        – check how much amount is there in the account 
 - **PUT /unBlock**                – unblock the blocked account
 
-# **Design of this api** : [click here for the ATM Transaction RAML](https://anypoint.mulesoft.com/exchange/7d966827-598f-4224-86f6-1b6c1378d189/mulesoft-atm-transaction-lokeshgundlapalli/)
+# **Design of this api** : [click here for the ATM Transaction RAML](https://anypoint.mulesoft.com/exchange/portals/tavant-technologies-81/7d966827-598f-4224-86f6-1b6c1378d189/mulesoft-atm-transaction-lokeshgundlapalli/)
 
 #### Here is the  [_**POST MAN  collection**_]()
 
