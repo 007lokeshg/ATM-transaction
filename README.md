@@ -9,28 +9,28 @@ This API contain 4 end points.
 > - with draw
 > - unBlock
 
-** create Account** : IT tells how to create a Bank account.
+**create Account** : IT tells how to create a Bank account.
 
-** check Balance** : IT tells how to check the balance in Bank account.
+**check Balance** : IT tells how to check the balance in Bank account.
 
-** with Draw ** : It tells how to with draw amount from the bank account.
+**with Draw** : It tells how to with draw amount from the bank account.
 
-** UnBlock **  : It tells to unBlock the ATM Pin from the blocked account.
+**UnBlock**  : It tells to unBlock the ATM Pin from the blocked account.
 
 **Document** : [ATM Transaction Project Document](https://drive.google.com/folderview?id=15xt-ZDDphJc2qskn3aIx3QK9ViF3JyvY) (click here to open the document)
 
-- ** POST /createAccount??customerName=lokesh=ICIC=savings=Ramnagar **                                              – create an account
-- **POST /withDraw?bank=ICIC=savings **             – with draw amount from the account
-- ** POST /checkBalance?bank=ICIC=savings **        – check how much amount is there in the account 
+- **POST /createAccount??customerName=lokesh=ICIC=savings=Ramnagar**                                              – create an account
+- **POST /withDraw?bank=ICIC=savings**             – with draw amount from the account
+- **POST /checkBalance?bank=ICIC=savings**        – check how much amount is there in the account 
 - **PUT /unBlock**                – unblock the blocked account
 
 # **Design of this api** : [click here for the ATM Transaction RAML](https://anypoint.mulesoft.com/exchange/7d966827-598f-4224-86f6-1b6c1378d189/mulesoft-atm-transaction-lokeshgundlapalli/)
 
 #### Here is the  [_** POST MAN  collection **_]()
 
-# **Post create Account ** :
+# **Post create Account**:
 
-[[http://127.0.0.1:8082/api/createAccount?customerName=vinay=ICIC=savings=ramnagar](http://127.0.0.1:8082/api/createAccount?customerName=vinay&bank=ICIC&types=savings&branchName=ramnagar)]
+[http://127.0.0.1:8082/api/createAccount?customerName=lokesh=ICIC=savings=ramnagar](http://127.0.0.1:8082/api/createAccount?customerName=lokesh&bank=ICIC&types=savings&branchName=ramnagar)
 
 **body:**
 
@@ -45,9 +45,9 @@ This API contain 4 end points.
 }
 ```
 
-# **Post check balance **:
+# **Post check balance**:
 
-[[http://127.0.0.1:8082/api/checkBalance?bank=ICIC=savings](http://127.0.0.1:8082/api/checkBalance?bank=ICIC&types=savings)]
+[http://127.0.0.1:8082/api/checkBalance?bank=ICIC=savings](http://127.0.0.1:8082/api/checkBalance?bank=ICIC&types=savings)
 
 **body**:
 
@@ -60,7 +60,7 @@ This API contain 4 end points.
 
 # **Post withdraw**:
 
-[[http://127.0.0.1:8082/api/withDraw?bank=ICIC=savings](http://127.0.0.1:8082/api/withDraw?bank=ICIC&type=savings)]
+[http://127.0.0.1:8082/api/withDraw?bank=ICIC=savings](http://127.0.0.1:8082/api/withDraw?bank=ICIC&type=savings)
 
  **body**:
 
