@@ -19,9 +19,9 @@ This API contain 4 end points.
 
 **Document** : [ATM Transaction Project Document](https://drive.google.com/folderview?id=15xt-ZDDphJc2qskn3aIx3QK9ViF3JyvY) (click here to open the document)
 
-- **POST /createAccount??customerName=lokesh=ICIC=savings=Ramnagar**                                              – create an account
-- **POST /withDraw?bank=ICIC=savings**             – with draw amount from the account
-- **POST /checkBalance?bank=ICIC=savings**        – check how much amount is there in the account 
+- **POST /createAccount?customerName=Lokesh&bank=AXIS&types=savings&branchName=ramnagar**                                              – create an account
+- **POST /withDraw?bank=AXIS&types=savings**             – with draw amount from the account
+- **POST /checkBalance?bank=AXIS&types=savings**        – check how much amount is there in the account 
 - **PUT /unBlock**                – unblock the blocked account
 
 # **Design of this api** : [click here for the ATM Transaction RAML](https://anypoint.mulesoft.com/exchange/portals/tavant-technologies-81/7d966827-598f-4224-86f6-1b6c1378d189/mulesoft-atm-transaction-lokeshgundlapalli/)
@@ -30,7 +30,7 @@ This API contain 4 end points.
 
 # **Post create Account**:
 
-[http://127.0.0.1:8082/api/createAccount?customerName=lokesh=ICIC=savings=ramnagar](http://127.0.0.1:8082/api/createAccount?customerName=lokesh&bank=ICIC&types=savings&branchName=ramnagar)
+[http://127.0.0.1:8082/api/createAccount?customerName=Lokesh&bank=AXIS&types=savings&branchName=ramnagar](http://127.0.0.1:8082/api/createAccount?customerName=Lokesh&bank=AXIS&types=savings&branchName=ramnagar)
 
 **body:**
 
@@ -47,7 +47,7 @@ This API contain 4 end points.
 
 # **Post check balance**:
 
-[http://127.0.0.1:8082/api/checkBalance?bank=ICIC=savings](http://127.0.0.1:8082/api/checkBalance?bank=ICIC&types=savings)
+[http://127.0.0.1:8082/api/checkBalance?bank=AXIS&types=savings](http://127.0.0.1:8082/api/checkBalance?bank=AXIS&types=savings)
 
 **body**:
 
@@ -60,7 +60,7 @@ This API contain 4 end points.
 
 # **Post withdraw**:
 
-[http://127.0.0.1:8082/api/withDraw?bank=ICIC=savings](http://127.0.0.1:8082/api/withDraw?bank=ICIC&type=savings)
+[http://127.0.0.1:8082/api/withDraw?bank=AXIS&types=savings](http://127.0.0.1:8082/api/withDraw?bank=AXIS&types=savings)
 
  **body**:
 
@@ -83,6 +83,6 @@ This API contain 4 end points.
   "user": "admin",
   "password": "admin",
   "accountNum": "9581585591",
-  "bank": "ICIC"
+  "bank": "AXIS"
 }
 ```
