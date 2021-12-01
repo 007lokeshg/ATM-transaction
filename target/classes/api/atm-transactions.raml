@@ -1,0 +1,68 @@
+#%RAML 1.0
+title: mulesoft-atm-transaction-lokeshGundlapalli
+
+uses: 
+  common: /libraries/atm-transaction-library.raml
+
+types:
+  createAccountType: !include schemas/create_account_dataType.raml
+  checkBalanceType: !include schemas/check_balance_dataType.raml 
+  withDrawType: !include schemas/with_drawn_dataType.raml
+  unBlock: !include schemas/unblock-dataType.raml
+  
+
+/createAccount:
+  post:
+    is:
+      - common.customerName
+      - common.bank
+      - common.type
+      - common.branchname
+    body:
+          application/json:
+           type: createAccountType
+    responses:
+      201:
+        body:
+          application/json:
+           example: !include example/create-account-customer-details1.raml
+
+/checkBalance: 
+  post:
+    is:
+      - common.bank
+      - common.type
+    body:
+          application/json:
+            type: checkBalanceType
+    responses:
+      201:
+        body:
+          application/json:
+            example: !include example/check_balance_example.raml
+
+/withDraw:
+  post:
+    is:
+      - common.bank
+      - common.type
+    body:
+          application/json:
+            type: withDrawType
+    responses:
+      200:
+        body:
+          application/json:
+            example: !include example/amount_with_drawn_example.raml
+
+/unblock:
+  put:
+    body:            
+      application/json:
+        type: unBlock
+    responses:
+      200:
+        body:
+          application/json:
+            example: !include example/unblock-example.raml
+              

@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:email="http://www.mulesoft.org/schema/mule/email"
+	xmlns:validation="http://www.mulesoft.org/schema/mule/validation"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd 
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd 
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd 
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+	<sub-flow name="common_Flow_Transaction" doc:id="4a193d85-173e-4918-a274-67adf6772c91" >
+		<ee:transform doc:name="mapping-input-data" doc:id="2295ddc2-5dc0-4d21-8a70-29881c551ac3" >
+				<ee:message >
+				<ee:set-payload resource="Transformation/common.dwl" />
+				
+</ee:message>
+				<ee:variables >
+				</ee:variables>
+			</ee:transform>
+			<set-variable value="#[payload]" doc:name="orginalPayload-variable" doc:id="d640c511-06ed-4170-933c-9129fe04b3ed" variableName="orginalPayload"/>
+			<db:select doc:name="Select-if-account-exit" doc:id="3cf6c4d8-96bc-46d7-a23d-e4ed98664f67" config-ref="Database_Config">
+				<db:sql ><![CDATA[select * from Bank_Transactions where custAccNum=:custAccNum and bankName=:bankName;]]></db:sql>
+				<db:input-parameters ><![CDATA[#[{
+	custAccNum:payload.custAccNum,
+	bankName: payload.bankName
+}]]]></db:input-parameters>
+			</db:select>
+			<ee:transform doc:name="convert-java-to-json" doc:id="2ebc0586-f0f1-4c5f-91ec-5106283d507e">
+				<ee:message>
+					<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload[0]]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+		<ee:transform doc:name="variable to call the flow deepnds upon end-point" doc:id="595aba42-97fe-478c-bf33-be5b5d32c100" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="accountCall" ><![CDATA[%dw 2.0
+output application/json
+---
+vars.path match{
+	case "/createAccount" -> "createAccountFlow"
+	case "/checkBalance" -> "commn-Flow-for-checkBalanc_and_Withdraw"
+	case "/withDraw" -> "commn-Flow-for-checkBalanc_and_Withdraw" 
+	case "/unblock" -> "unBlockAccountFlow"
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="calling_perticular-flow-depends upon end point" doc:id="d7d9278b-d7b7-4290-a279-85ccb092d559" name="#[vars.accountCall]"/>
+			
+</sub-flow>
+<sub-flow name="commn-Flow-for-checkBalanc_and_Withdraw" doc:id="6238ea99-1446-4bce-a743-515070af1eaa" >
+		<logger level="INFO" doc:name="Logger" doc:id="e2e05d6c-1f96-42e1-99f3-2538660d8f80" message="#[payload]"/>
+		<validation:is-not-null doc:id="6d2dd1bd-9d6a-4b3a-a6b9-95c91faf9da7" value="#[payload.custAccNum]" message='#["Account " ++ vars.orginalPayload.custAccNum ++ "  does not exist Enter Valid Details"]' doc:name="checking Account number">
+			<error-mapping targetType="ACCOUNT:NOT_EXIT" sourceType="VALIDATION:NULL"/>
+		</validation:is-not-null>
+		<validation:is-true doc:name="checking Accont Status" doc:id="28f17e90-bf21-427e-9cdb-43e5b4fbc6c5" message='#["Account " ++ vars.orginalPayload.custAccNum  ++ " temporarily blocked. Please visit
+&#10;nearest Branch"]' expression='#[payload.accountStatus == "Active"]'>
+			<error-mapping targetType="ACCOUNT:NOT_ACTIVE" sourceType="VALIDATION:INVALID_BOOLEAN"/>
+		</validation:is-true>
+		<try doc:name="Try" doc:id="d092cd10-a778-4fb0-b25a-f3f1f9dda69b" >
+			<validation:is-true doc:name="validating ATM-pin number" doc:id="e5a603e3-4103-48a1-9995-1c3fb6f73a15" expression="#[payload.atmPin == vars.orginalPayload.atmPin]">
+			<error-mapping sourceType="VALIDATION:INVALID_BOOLEAN" targetType="ATM:WRONG_PIN" />
+			</validation:is-true>
+			<error-handler >
+				<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="8c8c6c88-b4e0-4f3d-b9ed-c3429ad56c0f" type="ATM:WRONG_PIN">
+					<flow-ref doc:name="calling-atmPin-wrong-flow" doc:id="28756f0d-d42f-4979-a23d-5314e6471923" name="atm-wrongPin-Sub_Flow"/>
+					
+				</on-error-propagate>
+			</error-handler>
+		</try>
+		<ee:transform doc:name="variable-checkBalance-WithDrwa" doc:id="74230396-64e1-4ace-9195-9c1e243e0782" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="check_withdraw" ><![CDATA[%dw 2.0
+output application/json
+---
+vars.path match{
+	case "/checkBalance" -> "checkBalanceSub_Flow"
+	case "/withDraw" -> "withDrawFlow"
+	
+	
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="calling checkBalance and withdraw" doc:id="b3c4a931-0d5a-483a-b865-4c5c597ff65f" name='#[vars.check_withdraw]'/>
+		<logger level="INFO" doc:name="Logger" doc:id="b09a1f31-15cf-4e57-ab50-7bd12e3bfd7a" message="#[payload]"/>
+		
+	
+</sub-flow>
+<sub-flow name="email_sending_flow" doc:id="eb963208-ff0d-4839-9b06-e330a58fac19" >
+		<until-successful maxRetries="3" doc:name="Until Successful" doc:id="10296d0e-72d2-4232-84fd-97193ef01da1" millisBetweenRetries="20000">
+			<email:send doc:id="78f8dc0d-8999-4924-9903-714492a03bad" config-ref="Email_SMTP" toAddresses="#[[payload.mailId]]" fromAddress="#[Mule::p('secure::smtp.email')]" subject="#[vars.Subject]" doc:name="Send-mail-after-successful_insert-into-DB">
+			<email:body>
+				<email:content><![CDATA[#[vars.content]]]></email:content>
+			</email:body>
+		
+</email:send>
+			<logger level="INFO" doc:name="Logger" doc:id="9d519a3d-112f-4638-bad4-04295f619d29" message="email sended successfully" />
+		</until-successful>
+
+	</sub-flow>
+	
+	
+</mule>

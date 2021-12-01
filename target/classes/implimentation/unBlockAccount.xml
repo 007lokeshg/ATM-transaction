@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd">
+	<sub-flow name="removeOB" doc:id="80a948bd-90f6-4d4c-b957-5105df3ffff8" >
+		<os:remove doc:name="removing the stored key" doc:id="79b751e3-61e7-4c40-8cc6-306b9a6b3e8a" objectStore="Object_store" key="#[payload.custAccNum ++ payload.bankName]" />
+	</sub-flow>
+	<flow name="unBlockAccountFlow" doc:id="31c31998-5373-49ca-87e5-0e1595d4f6a4" >
+		<logger level="INFO" doc:name="Log payload" doc:id="e2197cdb-1e5a-4397-9733-ebe756006a21" message="payload"/>
+		<validation:is-not-null doc:name="checking wether the account is there or not" doc:id="90bcf5fe-a51f-4935-80f1-623c47f44b90" value="#[payload]" message='#["Account Number not existing with these Bank" ++ vars.orginalPayload.bankName]'>
+			<error-mapping targetType="ACCOUNT:NOT_EXIT" />
+		</validation:is-not-null>
+		<validation:is-true doc:name="Checking wether The account is Blocked" doc:id="e308e04e-ecb2-4508-8090-453bdc4086fd" expression='#[payload.accountStatus == "Block"]' message='#[payload.custAccNum ++ " account is in active only"]'/>
+		<db:update doc:name="Updateing Blocked Account to Active" doc:id="8ad8eb7f-79f7-497c-a63d-7cf2e4c6a195" config-ref="Database_Config" target="unBlock">
+			<db:sql ><![CDATA[UPDATE `Bank_Transactions` SET `accountStatus`="Active",`wrongPin`=0 WHERE `custAccNum`=:custAccNum and `bankName`=:bankName
+and accountStatus="Block" and wrongPin=3]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	custAccNum:payload."custAccNum",
+    bankName:payload."bankName"
+}]]]></db:input-parameters>
+		</db:update>
+		<async doc:name="Async" doc:id="748c9060-f04a-48f7-aa66-def2362def05" >
+			<flow-ref doc:name="calling sub_flow to remove the key " doc:id="cfc8674d-3c00-4d8d-8c69-49d517130f7e" name="removeOB"/>
+			<ee:transform doc:name="variable-content,variable-subject" doc:id="2d1bfdd7-aa7b-4511-bc6e-257b6ea8cb9a">
+				<ee:message>
+				</ee:message>
+				<ee:variables>
+					<ee:set-variable variableName="content"><![CDATA[%dw 2.0
+output text/plain
+---
+"This is to inform you that Your Account has been unblocked "]]></ee:set-variable>
+					<ee:set-variable variableName="Subject"><![CDATA[%dw 2.0
+output text/plain
+---
+"Account Unblocked!"]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+			<flow-ref doc:name="calling-email-flow" doc:id="16f1c4fd-1130-4a9a-9f3a-4d13014bb77d" name="email_sending_flow"/>
+		</async>
+		<ee:transform doc:name="output after unBlocking an account" doc:id="2d0247c6-af85-475c-8106-779b25cf47fe" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  
+    status: "Account " ++ payload.custAccNum as Number ++ " is unblocked"
+  }
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>

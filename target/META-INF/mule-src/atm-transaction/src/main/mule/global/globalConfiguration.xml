@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties"
+	xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:tls="http://www.mulesoft.org/schema/mule/tls"
+	xmlns:email="http://www.mulesoft.org/schema/mule/email" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd 
+http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd 
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd">
+	<apikit:config name="atm-transactions-config" api="atm-transactions.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="de914c07-5152-4cb8-9627-2d821658fced" >
+		<db:my-sql-connection host="${secure::db.mysql.host}" port="${db.mysql.port}" user="${secure::db.mysql.user}" password="${secure::db.mysql.password}" database="${db.mysql.database}">
+			<db:connection-properties >
+				<db:connection-property key="useSSL" value="false" />
+			</db:connection-properties>
+		</db:my-sql-connection>
+	</db:config>
+	<configuration-properties doc:name="Configuration properties" doc:id="6258d9f8-7a64-4d93-8b30-e1abc0f313ad" file="config/${env}.yaml" />
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="8143924b-d910-432d-9c53-af7a2583bc52" >
+		<http:listener-connection host="${http.listener.host}" port="${http.listener.port}" />
+	</http:listener-config>
+	<email:smtp-config name="Email_SMTP" doc:name="Email SMTP" doc:id="32e2c5cb-286d-4e80-93ac-3bc5c620c662" >
+		<email:smtp-connection host="${smtp.host}" user="${secure::smtp.email}" password="${secure::smtp.password}" port="${smtp.port}">
+			<email:properties >
+				<email:property key="mail.smtp.starttls.enable" value="true" />
+			</email:properties>
+		</email:smtp-connection>
+	
+</email:smtp-config>
+	<global-property doc:name="Global Property" doc:id="a64b0a62-1ad4-464c-8bab-7a6259b7be14" name="env" value="dev" />
+	<configuration doc:name="Configuration" doc:id="834fd309-4ef8-4742-ae52-10847d97fd64" defaultErrorHandler-ref="globalErrorHandlingError_Handler" />
+    <os:object-store name="Object_store" doc:name="Object store" doc:id="bab862ce-7a29-4fe7-accd-79bea6b68dea" />
+	<secure-properties:config name="Secure_Properties_Config" doc:name="Secure Properties Config" doc:id="b491243d-aedb-4f35-b3ed-0bf8805d0ff6" file="config/${env}.yaml" key="${key}" >
+		<secure-properties:encrypt algorithm="Blowfish" />
+	</secure-properties:config>
+	<global-property doc:name="Global Property" doc:id="59a50f8f-67b8-4a50-8db2-ab13ed69c14c" name="key" value="123456789" />
+	
+</mule>

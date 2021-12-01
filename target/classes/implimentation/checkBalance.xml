@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:validation="http://www.mulesoft.org/schema/mule/validation"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+	<sub-flow name="checkBalanceSub_Flow" doc:id="5ab32c49-3111-4577-b7bf-b86b8326534c" >
+		<ee:transform doc:name="output- for-checkBalance" doc:id="21904e4f-dab4-4ce4-aed9-a439ea567ce7">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+"your total balance is " ++ (payload.totalBalance as Number as String {format:".####"} ) 
+++ " as on" ++ (((payload.transactionTimeStamp) >> "IST") as Date {format:"dd-MMM-yyyy"} )++ " in " ++ payload.custAccNum as Number]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</sub-flow>
+	<sub-flow name="atm-wrongPin-Sub_Flow" doc:id="141f7895-6785-4b4a-94bc-05bae8c32c32" >
+		<os:retrieve doc:name="Retrieveing no of times wrong-pin and target_wrongPin" doc:id="39253d80-ee28-40e9-a5ea-6a855c729479" key="#[payload.custAccNum ++ payload.bankName]" target="wrongPin" objectStore="Object_store">
+						<os:default-value><![CDATA[0]]></os:default-value>
+					</os:retrieve>
+					<ee:transform doc:name="incrementing  the wrong pin with +1" doc:id="aed8f900-5d23-481e-94f7-e992319348bc">
+						<ee:message>
+						</ee:message>
+						<ee:variables>
+							<ee:set-variable variableName="wrongPin" ><![CDATA[%dw 2.0
+output application/json
+---
+if (vars.wrongPin < 3) 
+   (vars.wrongPin as Number + 1)
+else
+ vars.wrongPin]]></ee:set-variable>
+						</ee:variables>
+					</ee:transform>
+					<os:store doc:id="23ec1fd2-67db-4450-a55b-bcac727b2941" key="#[payload.custAccNum ++ payload.bankName]" objectStore="Object_store" doc:name="Storeing the Wrong pin value">
+			<os:value><![CDATA[#[vars.wrongPin]]]></os:value>
+		</os:store>
+					<db:update doc:name="Updateing the wrong pin and account status" doc:id="204adf6f-d6c9-4561-97c5-1b898f49ad42" config-ref="Database_Config" target="updatedb">
+			<db:sql ><![CDATA[UPDATE `Bank_Transactions` SET 
+`accountStatus`=(case
+		when wrongPin=2 Then "Block"
+		when wrongPin<:wrongPin then "Active"
+	end),
+`wrongPin`=:wrongPin 
+where 
+	custAccNum=:custAccNum and bankName=:bankName]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	wrongPin:vars.wrongPin,
+	custAccNum:payload.custAccNum,
+	bankName:payload.bankName
+}]]]></db:input-parameters>
+		</db:update>
+		<async doc:name="sending message to mail asynchronously" doc:id="11b5ce7e-3d17-4996-a34f-f1eb8aff8dbe" >
+			<ee:transform doc:name="variable-content,variable-subject" doc:id="a7116e16-ba0d-4cea-ad06-bcf1b343d51b" >
+				<ee:message >
+				</ee:message>
+				<ee:variables >
+					<ee:set-variable variableName="Subject" ><![CDATA[%dw 2.0
+output text/plain
+---
+if(vars.wrongPin as Number < 3) "Failed Attempt !"
+else "Account Blocked ! "]]></ee:set-variable>
+					<ee:set-variable variableName="content" ><![CDATA[%dw 2.0
+output text/plain
+---
+if(vars.wrongPin as Number < 3)"This is to inform you that there’s a failed attempt happened while transaction . Your Account will be blocked after " ++ (3 - vars.wrongPin as Number ) as Number ++ " attempts" 
+else 
+  "This is to inform you that Your Account has been be blocked due to 3 failed attempts. Please reach out nearest branch to unblock"]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+			<flow-ref doc:name="calling_email_flow" doc:id="47b82b3a-cc63-4528-857e-e99d5164ab8d" name="email_sending_flow" />
+		</async>
+		<ee:transform doc:name="output-checkBalance for error raised" doc:id="07ef7524-b789-4b61-9df7-7f2f00e95ddc">
+						<ee:message>
+							<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+if(vars.wrongPin as Number < 3)
+"Login Attempt Failed - Attemptsleft : " ++ 3 - vars.wrongPin as Number
+else (
+	"Maximum Attempts reached .Your Account " ++ payload.custAccNum as Number ++ " is temporarily blocked. Please reach nearest Branch"
+)]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+		 </sub-flow>
+</mule>

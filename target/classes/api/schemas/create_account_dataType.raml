@@ -1,0 +1,19 @@
+#%RAML 1.0 DataType
+properties:
+              accountNum:
+                type: string
+                maxLength: 10
+                minLength: 10
+              atmPin:
+                type: string
+                maxLength: 4
+                minLength: 4
+              ifscCode:
+                maxLength: 10
+                minLength: 4
+              depositAmount:
+                required: false
+              mailId:
+                type: string
+              contact:
+                type: string

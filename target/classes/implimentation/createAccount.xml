@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:ipswitch-mit-mule4="http://www.mulesoft.org/schema/mule/ipswitch-mit-mule4"
+	xmlns:s3="http://www.mulesoft.org/schema/mule/s3"
+	xmlns:email="http://www.mulesoft.org/schema/mule/email" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd
+http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/current/mule-s3.xsd
+http://www.mulesoft.org/schema/mule/ipswitch-mit-mule4 http://www.mulesoft.org/schema/mule/ipswitch-mit-mule4/current/mule-ipswitch-mit-mule4.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd">
+	
+	<sub-flow name="createAccountFlow" doc:id="652a259b-4ceb-45b4-9d3a-607d7122d9f5" >
+		<logger level="INFO" doc:name="checking-variable" doc:id="03c4f78a-07e5-46cf-acbb-767edd5b1832" message="#[payload]"/>
+		<ee:transform doc:name="condition-checking" doc:id="f1951404-bcde-4109-a041-a82386f65db2">
+			<ee:message>
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="check"><![CDATA[%dw 2.0
+output application/json
+var var1=vars.custAccNum
+fun check(condition)= if ((payload.custAccNum ==vars.orginalPayload.custAccNum) and (payload.bankName ==vars.orginalPayload.bankName))
+"account_already-exit"
+	else
+	"insert_into_DB"
+---
+check(payload)]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="account-insert and already exit" doc:id="3ff426fb-94da-4ad6-8053-207d7d352f4c" name="#[vars.check]"/>
+	</sub-flow>
+	<flow name="insert_into_DB" doc:id="f344c05d-f6db-401a-83e3-642a298a076a" >
+		<set-payload value="#[vars.orginalPayload]" doc:name="orginal_Set Payload" doc:id="cba2cb9c-f940-44a6-802d-5c41da2ad4ff" />
+		<db:insert doc:name="Insert-account-details-in-DB" doc:id="caef7db2-1e4f-4590-8155-d8ce59194743" config-ref="Database_Config" target="createAcc_insert">
+			<db:sql><![CDATA[insert into Bank_Transactions(custName,custAccNum,atmPin,bankName,accountType,ifscCode,branchName,totalBalance,transactionTimeStamp,accountStatus,wrongPin,mailId,phoneNumber)values(:custName,:custAccNum,:atmPin,:bankName,:accountType,:ifscCode,:branchName,:totalBalance,:transactionTimeStamp,accountStatus,wrongPin,:mailId,:phoneNumber)]]></db:sql>
+			<db:input-parameters><![CDATA[#[{
+	custName : payload.custName,
+	custAccNum : payload.custAccNum,
+	atmPin : payload.atmPin,
+	bankName : payload.bankName,
+	accountType : payload.accountType,
+	ifscCode : payload.ifscCode,
+	branchName: payload.branchName,
+	totalBalance: payload.totalBalance,
+	transactionTimeStamp : payload.transactionTimeStamp,
+	mailId : payload.mailId,
+	phoneNumber : payload.phoneNumber,
+}]]]></db:input-parameters>
+		</db:insert>
+		<logger level="INFO" doc:name="sucessful insert into DB -Logger" doc:id="0c6e5f22-5d6c-45aa-a961-40a9bbb024e6" message="sucessfully #[vars.createAcc_insert]"/>
+		<async doc:name="Async" doc:id="0818c764-26f7-4370-b902-eb093b24f166" >
+			<logger level="INFO" doc:name="Logger" doc:id="2413f1f8-b6c8-4579-ae93-bcb308ed2c1a" message="#[payload]"/>
+			<ee:transform doc:name="variable-content,variable-subject" doc:id="3d8a1a22-6f62-42d4-95f5-c1c85bdaabca" >
+				<ee:message >
+				</ee:message>
+				<ee:variables >
+					<ee:set-variable variableName="content" ><![CDATA[%dw 2.0
+output text/plain
+---
+"Congratulations ! Your account is created Successfully with Account Number "++ payload.custAccNum  ++ " with " ++ payload.bankName  ++" Bank "]]></ee:set-variable>
+					<ee:set-variable variableName="Subject" ><![CDATA[%dw 2.0
+output application/java
+---
+"Congratulations ! Account created"]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+			<flow-ref doc:name="calling_email_sub_flow" doc:id="8f83cc1b-ad7e-4061-90d9-454e0d326918" name="email_sending_flow"/>
+		</async>
+		<ee:transform doc:name="outPut of successfully-inserted record" doc:id="83d2ab0e-5d1e-4728-b4f9-066c94954eb3">
+						<ee:message>
+							<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status":("Account Created Successfully with Account Number ") ++ payload.custAccNum as Number
+} 
+
+]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+	</flow>
+	<sub-flow name="account_already-exit">
+		<set-payload value='#[(" Account "++ payload.custAccNum ++ "  already exist ")]' doc:name="Acc-no_ Payload" doc:id="a97f308b-7efb-4b2e-8ec4-a9ffcfb6d36f" />
+	</sub-flow>
+</mule>

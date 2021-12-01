@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:validation="http://www.mulesoft.org/schema/mule/validation"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+	<sub-flow name="withDrawFlow" doc:id="92f438c5-0d8d-4549-91f0-2775a6dc91f9" >
+		<try doc:name="Try" doc:id="f38b9dc9-c0db-4535-85aa-3aee0e2d04e8" >
+			<validation:is-true doc:name="checking-total_balance" doc:id="9181eae0-17f3-472f-b9f5-14bc2783f26b" expression='#[payload ."totalBalance" &gt; vars.requestPayload.ammountToWithdraw]' message='#["Insufficient Funds"]'>
+			<error-mapping targetType="AMOUNT:INSUUFICENT_FUNDS" sourceType="VALIDATION:INVALID_BOOLEAN"/>
+		</validation:is-true>
+			<db:update doc:name="Updateing_amount" doc:id="81dab721-871b-4fd5-8254-49fd9eff1c7e" config-ref="Database_Config" target="withDraw">
+			<db:sql><![CDATA[update Bank_Transactions set totalBalance=(totalBalance - :totalBalance) 
+where custAccNum=:custAccNum and bankName=:bankName
+ and totalBalance>:totalBalance]]></db:sql>
+			<db:input-parameters><![CDATA[#[{
+	custAccNum:payload.custAccNum,
+	bankName:payload.bankName,
+	totalBalance:vars.requestpayload.ammountToWithdraw
+}]]]></db:input-parameters>
+		</db:update>
+			<error-handler >
+				<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="0fd5a1b9-d4e3-434e-b0a6-3ac5b0c19d2f" type="AMOUNT:INSUUFICENT_FUNDS">
+				<ee:transform doc:name="Transform Message" doc:id="91aecf3a-3793-41b3-b66c-63b96e7cb9b7">
+					<ee:message>
+							<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message":error.description
+}]]></ee:set-payload>
+					</ee:message>
+						<ee:variables >
+							<ee:set-variable variableName="httpStatus" ><![CDATA[400]]></ee:set-variable>
+						</ee:variables>
+				</ee:transform>
+			</on-error-propagate>
+			</error-handler>
+		</try>
+		<db:select doc:name="fetching_account-details" doc:id="e0e1f3e6-9ac3-41be-a413-3eb50507c8bc" config-ref="Database_Config">
+			<db:sql ><![CDATA[select * from Bank_Transactions where custAccNum=:custAccNum and bankName=:bankName]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	custAccNum:payload.custAccNum,
+	bankName:payload.bankName
+}]]]></db:input-parameters>
+		</db:select>
+		<ee:transform doc:name="java-to-json" doc:id="e887c4c9-643d-43e3-bfc4-ca2798a02de1" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload[0]]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<async doc:name="Async" doc:id="6875e92a-4f3f-4161-8c12-76b51148d2bf" >
+			<ee:transform doc:name="variable-content,variable-subject" doc:id="a0770de8-34c5-4ecd-886d-2a6c2e2bd5c8" >
+				<ee:message >
+				</ee:message>
+				<ee:variables >
+					<ee:set-variable variableName="content" ><![CDATA[%dw 2.0
+output text/plain
+---
+"This is to inform you that Your Account has been debited with " ++ vars.requestPayload.ammountToWithdraw as Number ++ " amount and your Total Balance is " ++ payload.totalBalance]]></ee:set-variable>
+					<ee:set-variable variableName="Subject" ><![CDATA[%dw 2.0
+output text/plain
+---
+"Transaction Alert!"]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+			<flow-ref doc:name="calling-email-flow" doc:id="65fdf114-4508-4be4-9544-f1b007e7a33c" name="email_sending_flow"/>
+		</async>
+		<ee:transform doc:name="output of amount_with draw" doc:id="9e3650c0-33ed-415a-be6c-8917d407a2a3" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	 status: "Amount " ++ vars.requestPayload.ammountToWithdraw as Number ++ " is debited. your total balance is " ++ payload.totalBalance
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</sub-flow>
+</mule>

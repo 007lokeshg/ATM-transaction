@@ -1,0 +1,8 @@
+%dw 2.0
+
+type auto_eb963208_ff0d_4839_9b06_e330a58fac19_Input_Variables_wrongPin = Number | java_io_Serializable
+type java_io_Serializable = {|  |} {"typeAlias": "Serializable",
+"typeId": "java.io.Serializable"}
+
+
+
